@@ -1,7 +1,9 @@
+"use server";
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
-//import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";

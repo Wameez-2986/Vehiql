@@ -65,7 +65,7 @@ const HomeSearch = () => {
         "image/*": [".jpeg", ".jpg", ".png"],
       },
       maxFiles: 1,
-    });
+    }); 
 
   return (
     <div>
