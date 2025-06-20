@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Loader2, Save, Shield } from 'lucide-react';
+import { Badge, Clock, Loader2, Save, Search, Shield, User, Users, UserX } from 'lucide-react';
 import useFetch from '@/hooks/use-fetch';
 import { getDealershipInfo, getUsers, saveWorkingHours, updateUserRole } from '@/actions/settings';
 import {
@@ -16,6 +16,15 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const DAYS = [
   { value: "MONDAY", label: "Monday" },
@@ -99,6 +108,24 @@ const SettingsForm = () => {
   } = useFetch(updateUserRole);
 
   useEffect(() => {
+    if (settingsError) {
+      toast.error("Failed to load dealership settings");
+    }
+
+    if (saveError) {
+      toast.error(`Failed to save working hours: ${saveError.message}`);
+    }
+
+    if (usersError) {
+      toast.error("Failed to load users");
+    }
+
+    if (updateRoleError) {
+      toast.error(`Failed to update user role: ${updateRoleError.message}`);
+    }
+  }, [settingsError, saveError, usersError, updateRoleError]);
+
+  useEffect(() => {
     fetchDealershipInfo();
     fetchUsers();
   }, []);
@@ -122,13 +149,43 @@ const SettingsForm = () => {
       fetchDealershipInfo();
     }
 
-    // if (updateRoleResult?.success) {
-    //   toast.success("User role updated successfully");
-    //   fetchUsers();
-    //   setConfirmAdminDialog(false);
-    //   setConfirmRemoveDialog(false);
-    // }
-  }, [saveResult]);
+    if (updateRoleResult?.success) {
+      toast.success("User role updated successfully");
+      fetchUsers();
+    }
+  }, [saveResult, updateRoleResult]);
+
+   const handleMakeAdmin = async (user) => {
+     if (
+        confirm (
+            `Are you sure you want to give admin privileges to ${
+                 user.name || user.email
+            }? Admin users can manage all aspects of the dealership`
+        )
+     ) {
+        await updateRole(user.id, "ADMIN");
+     }
+  };
+
+   const handleRemoveAdmin = async (user) => {
+     if (
+        confirm (
+            `Are you sure you want to remove admin privileges to ${
+                 user.name || user.email
+            }? They will be no longer be able to access the admin dashboard`
+        )
+     ) {
+        await updateRole(user.id, "USER");
+     }
+  };
+
+  const filteredUsers = usersData?.success
+    ? usersData.data.filter(
+        (user) =>
+          user.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+          user.email.toLowerCase().includes(userSearch.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -245,7 +302,115 @@ const SettingsForm = () => {
              </Card>
          </TabsContent>
          <TabsContent value="admins">
-            h
+             <Card>
+              <CardHeader>
+                <CardTitle>Admin Users</CardTitle>
+                <CardDescription>Manage users with admin privileges.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                   <div className="mb-6 relative">
+                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                     <Input 
+                         type="search"
+                         placeholder="Search users..."
+                         className="pl-9 w-full"
+                         value={userSearch}
+                         onChange={(e) => setUserSearch(e.target.value)}
+                      />
+                   </div>
+
+                   {fetchingUsers ? (
+                     <div className="py-12 flex justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                     </div>
+                   ) : usersData?.success && filteredUsers.length > 0 ? (
+                      <div>
+                         <Table>
+                           <TableHeader>
+                             <TableRow>
+                               <TableHead>User</TableHead>
+                               <TableHead>Email</TableHead>
+                               <TableHead>Role</TableHead>
+                               <TableHead className="text-right">Actions</TableHead>
+                             </TableRow>
+                           </TableHeader>
+                           <TableBody>
+                                 {filteredUsers.map((user) => {
+                                    return (
+                                        <TableRow key={user.id}>
+                                       <TableCell className="font-medium">
+                                           <div className="flex items-center gap-2">
+                                             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                                {user.imageUrl ? (
+                                                  <img
+                                                    src={user.imageUrl}
+                                                    alt={user.name || "User"}
+                                                    className="w-full h-full object-cover"
+                                                  />
+                                                ) : (
+                                                  <Users className="h-4 w-4 text-gray-500" />
+                                                )}
+                                              </div>
+                                              <span>{user.name || "Unnamed User"}</span>
+                                            </div>
+                                       </TableCell>
+                                       <TableCell>{user.email}</TableCell>
+                                       <TableCell>
+                                         <Badge
+                                            className={`inline-flex items-center justify-center px-4 py-1 rounded-full text-white font-semibold text-sm ${
+                                              user.role === "ADMIN" ? "bg-green-700" : "bg-gray-900"
+                                             }`}
+                                             >
+                                             {user.role}
+                                         </Badge>
+
+                                       </TableCell>
+
+                                       <TableCell className="text-right">
+                                          {user.role === "ADMIN" ? (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="text-red-600"
+                                              onClick={() => handleRemoveAdmin(user)}
+                                              disabled={updatingRole}
+                                            >
+                                              <UserX className="h-4 w-4 mr-2" />
+                                                Remove Admin
+                                            </Button>
+                                          ) : (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleMakeAdmin(user)}
+                                              disabled={updatingRole}
+                                            >
+                                              <Shield className="h-4 w-4 mr-2" />
+                                                 Make Admin
+                                            </Button>
+                                          )}
+                                       </TableCell>
+                                       </TableRow>
+                                    );
+                                 })}
+                           </TableBody>
+                         </Table>
+                      </div>
+                   ) : (
+                      <div className="py-12 text-center">
+                         <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                         <h3 className="text-lg font-medium text-gray-900 mb-1">
+                            No users found
+                         </h3>
+                         <p className="text-gray-500">
+                            {userSearch
+                              ? "No users match your search criteria"
+                              : "There are no users registered yet"}
+                         </p>
+                      </div>
+                   )}
+              </CardContent>
+             </Card>
          </TabsContent>
         </Tabs>
     </div>
@@ -253,3 +418,6 @@ const SettingsForm = () => {
 }
 
 export default SettingsForm
+
+
+
