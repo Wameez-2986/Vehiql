@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
+import { serializeCarData } from "@/lib/helpers";
 
 export async function getFeaturedCars(limit = 3) {
     try {
