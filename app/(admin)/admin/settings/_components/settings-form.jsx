@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge, Clock, Loader2, Save, Search, Shield, User, Users, UserX } from 'lucide-react';
+import { Clock, Loader2, Save, Search, Shield, Users, UserX } from 'lucide-react';
 import useFetch from '@/hooks/use-fetch';
 import { getDealershipInfo, getUsers, saveWorkingHours, updateUserRole } from '@/actions/settings';
 import {
@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
 
 const DAYS = [
   { value: "MONDAY", label: "Monday" },
